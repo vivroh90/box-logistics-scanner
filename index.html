@@ -3,8 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Box Logistics Scanner</title>
-<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<title>Box Logistics</title>
 <style>
 body{font-family:Arial,sans-serif;text-align:center;margin:0;padding:20px;background:#f7f7f7}
 .card{max-width:520px;margin:auto;background:white;padding:20px;border-radius:16px}
@@ -12,11 +11,6 @@ h1{margin-top:5px}
 input,select,button{width:100%;box-sizing:border-box;padding:15px;margin:8px 0;font-size:18px;border-radius:10px}
 input,select{border:1px solid #bbb}
 button{border:0;color:#fff;background:#1976d2}
-button:disabled{opacity:.55}
-#reader{margin:15px auto;max-width:420px}
-#status{font-weight:bold;font-size:18px;margin:15px 0}
-#last{font-size:24px;font-weight:bold}
-#count{font-size:16px;color:#555;margin:8px}
 .small{font-size:13px;color:#666}
 </style>
 </head>
@@ -27,116 +21,18 @@ button:disabled{opacity:.55}
 <option value="SEND">GODOWN — SEND</option>
 <option value="RECEIVE">SHOP — RECEIVE</option>
 </select>
-<input id="employee" placeholder="Employee name">
-<button id="start" onclick="startScanner()">START SCANNING</button>
-<div id="reader"></div>
-<div id="status">Enter employee name and start scanning.</div>
-<div id="last"></div>
-<div id="count">Scanned: 0</div>
-<p class="small">Employee is entered once. Keep the camera moving from one QR to the next.</p>
+<input id="employee" placeholder="Employee name" autocomplete="name">
+<button onclick="start()">START SCANNING</button>
+<p class="small">The camera scanner will open on a separate page.</p>
 </div>
-
 <script>
-const API=https://script.google.com/macros/s/AKfycbxuGJBYBhbVKFoGOxiqLEyA7d6n1RgufqifsUBz5h1eUQTP0eZ2PXoc_tXvSj79ZRoD/exec;
-let scanner=null, employee="", action="";
-const scanned=new Set();
-let activeRequests=0;
-const MAX_REQUESTS=10;
-
-function startScanner(){
-  employee=document.getElementById("employee").value.trim();
-  action=document.getElementById("mode").value;
+function start(){
+  const employee=document.getElementById("employee").value.trim();
+  const action=document.getElementById("mode").value;
   if(!employee){alert("Enter employee name first");return;}
-
-  document.getElementById("employee").disabled=true;
-  document.getElementById("mode").disabled=true;
-  document.getElementById("status").textContent="Starting camera...";
-  document.getElementById("start").disabled=true;
-
-  scanner=new Html5Qrcode("reader");
-  scanner.start(
-    {facingMode:"environment"},
-    {fps:15,qrbox:{width:260,height:260}},
-    onScan,
-    ()=>{}
-  ).then(()=>{
-    document.getElementById("status").textContent="READY — SCAN BOX";
-  }).catch(err=>{
-    document.getElementById("status").textContent="Camera error: "+err;
-    document.getElementById("start").disabled=false;
-    document.getElementById("employee").disabled=false;
-    document.getElementById("mode").disabled=false;
-  });
-}
-
-function extractBox(text){
-  try{
-    const u=new URL(text);
-    return (u.searchParams.get("box")||"").trim();
-  }catch(e){
-    return text.trim();
-  }
-}
-
-function onScan(decodedText){
-  const box=extractBox(decodedText);
-  if(!box || !box.startsWith("BOX-")) return;
-  if(scanned.has(box)) return;
-
-  // Mark immediately so the camera can move to the next box without waiting.
-  scanned.add(box);
-  document.getElementById("count").textContent="Scanned: "+scanned.size;
-  document.getElementById("last").textContent="✓ "+box;
-
-  if(activeRequests>=MAX_REQUESTS){
-    document.getElementById("status").textContent="Queueing "+box+"...";
-    setTimeout(()=>sendBox(box),150);
-  }else{
-    sendBox(box);
-  }
-}
-
-function sendBox(box){
-  activeRequests++;
-  document.getElementById("status").textContent=
-    "Scanning continuously • last: "+box;
-
-  const callback="boxCallback_"+Date.now()+"_"+Math.floor(Math.random()*100000);
-  window[callback]=function(result){
-    try{
-      if(result.ok){
-        document.getElementById("status").textContent=
-          "✓ "+box+" recorded • READY FOR NEXT BOX";
-      }else{
-        // Allow retry if the server rejected the box.
-        scanned.delete(box);
-        document.getElementById("status").textContent=
-          "ERROR: "+result.message;
-      }
-    }finally{
-      delete window[callback];
-      const s=document.getElementById(callback);
-      if(s)s.remove();
-      activeRequests=Math.max(0,activeRequests-1);
-    }
-  };
-
-  const params=new URLSearchParams({
-    api:"1",box:box,action:action,employee:employee,callback:callback
-  });
-
-  const script=document.createElement("script");
-  script.id=callback;
-  script.src=API+"?"+params.toString();
-  script.onerror=function(){
-    scanned.delete(box);
-    document.getElementById("status").textContent=
-      "Connection error for "+box+" — scan it again.";
-    delete window[callback];
-    script.remove();
-    activeRequests=Math.max(0,activeRequests-1);
-  };
-  document.body.appendChild(script);
+  sessionStorage.setItem("boxEmployee",employee);
+  sessionStorage.setItem("boxAction",action);
+  window.location.href="scanner.html";
 }
 </script>
 </body>
