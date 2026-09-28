@@ -1,38 +1,647 @@
-
 <!doctype html>
+
 <html>
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Box Logistics</title>
-<style>
-body{font-family:Arial,sans-serif;text-align:center;margin:0;padding:20px;background:#f7f7f7}
-.card{max-width:520px;margin:auto;background:white;padding:20px;border-radius:16px}
-h1{margin-top:5px} input,select,button{width:100%;box-sizing:border-box;padding:15px;margin:8px 0;font-size:18px;border-radius:10px}
-input,select{border:1px solid #bbb} button{border:0;color:#fff;background:#1976d2}
-.small{font-size:13px;color:#666}
-</style>
+
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  >
+
+  <title>Box Scanner</title>
+
+  <!-- QR scanner library -->
+  <script
+    src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js">
+  </script>
+
+  <style>
+
+    body {
+      font-family: Arial;
+      text-align: center;
+      background: #f5f5f5;
+      padding: 10px;
+    }
+
+    .card {
+      max-width: 520px;
+      margin: auto;
+      background: white;
+      padding: 12px;
+      border-radius: 16px;
+    }
+
+    #video {
+      width: 100%;
+      max-width: 480px;
+      background: black;
+      border-radius: 12px;
+    }
+
+    #status {
+      font-weight: bold;
+      font-size: 18px;
+      margin: 12px;
+    }
+
+    #last {
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    button {
+      width: 100%;
+      padding: 13px;
+      font-size: 17px;
+      border: 0;
+      border-radius: 10px;
+      background: #1976d2;
+      color: white;
+    }
+
+  </style>
+
 </head>
+
+
 <body>
+
 <div class="card">
-<h1>BOX LOGISTICS</h1>
-<select id="mode">
-<option value="SEND">GODOWN — SEND</option>
-<option value="RECEIVE">SHOP — RECEIVE</option>
-</select>
-<input id="employee" placeholder="Employee name" autocomplete="name">
-<button onclick="start()">START SCANNING</button>
-<p class="small">Camera opens on the next page.</p>
+
+  <h1>BOX SCANNER</h1>
+
+  <div id="mode"></div>
+
+  <div id="emp"></div>
+
+  <br>
+
+  <!-- PHONE CAMERA -->
+  <video
+    id="video"
+    autoplay
+    playsinline
+    muted>
+  </video>
+
+  <canvas
+    id="canvas"
+    hidden>
+  </canvas>
+
+  <div id="status">
+    Opening camera...
+  </div>
+
+  <div id="last"></div>
+
+  <div id="count">
+    Scanned: 0
+  </div>
+
+  <br>
+
+  <button onclick="back()">
+    BACK
+  </button>
+
 </div>
+
+
 <script>
-function start(){
-  const employee=document.getElementById("employee").value.trim();
-  const action=document.getElementById("mode").value;
-  if(!employee){alert("Enter employee name first");return;}
-  sessionStorage.setItem("boxEmployee",employee);
-  sessionStorage.setItem("boxAction",action);
-  window.location.href="scanner.html";
+
+
+// YOUR NEW APPS SCRIPT URL
+
+const API =
+"https://script.google.com/macros/s/AKfycbxuGJBYBhbVKFoGOxiqLEyA7d6n1RgufqifsUBz5h1eUQTP0eZ2PXoc_tXvSj79ZRoD/exec";
+
+
+const employee =
+  sessionStorage.getItem("boxEmployee") || "";
+
+
+const action =
+  sessionStorage.getItem("boxAction") || "";
+
+
+const video =
+  document.getElementById("video");
+
+
+const canvas =
+  document.getElementById("canvas");
+
+
+const ctx =
+  canvas.getContext(
+    "2d",
+    {
+      willReadFrequently: true
+    }
+  );
+
+
+const scanned =
+  new Set();
+
+
+let stream = null;
+
+
+let barcodeDetector = null;
+
+
+// Display employee and mode
+
+document.getElementById("mode").textContent =
+  action === "SEND"
+    ? "GODOWN — SEND"
+    : "SHOP — RECEIVE";
+
+
+document.getElementById("emp").textContent =
+  "Employee: " + employee;
+
+
+
+// ===============================
+// BACK
+// ===============================
+
+function back() {
+
+  if (stream) {
+
+    stream
+      .getTracks()
+      .forEach(track => track.stop());
+
+  }
+
+  location.href = "index.html";
 }
+
+
+
+// ===============================
+// START CAMERA
+// ===============================
+
+async function startCamera() {
+
+  if (!employee || !action) {
+
+    location.href = "index.html";
+
+    return;
+  }
+
+
+  if (
+    !navigator.mediaDevices ||
+    !navigator.mediaDevices.getUserMedia
+  ) {
+
+    cameraError(
+      "Camera is not supported by this browser"
+    );
+
+    return;
+  }
+
+
+  try {
+
+    // DIRECT PHONE CAMERA
+
+    stream =
+      await navigator.mediaDevices.getUserMedia({
+
+        video: {
+
+          facingMode: {
+            ideal: "environment"
+          },
+
+          width: {
+            ideal: 1280
+          },
+
+          height: {
+            ideal: 720
+          }
+
+        },
+
+        audio: false
+
+      });
+
+
+    video.srcObject = stream;
+
+
+    await video.play();
+
+
+    document.getElementById("status").textContent =
+      "READY — SCAN BOX";
+
+
+    // Use phone's native QR detector
+    // when available
+
+    if ("BarcodeDetector" in window) {
+
+      try {
+
+        barcodeDetector =
+          new BarcodeDetector({
+            formats: ["qr_code"]
+          });
+
+      } catch (e) {
+
+        barcodeDetector = null;
+
+      }
+
+    }
+
+
+    requestAnimationFrame(
+      scanFrame
+    );
+
+
+  } catch (error) {
+
+    cameraError(
+      "Camera error: " +
+      (error.message || error.name)
+    );
+
+  }
+
+}
+
+
+
+// ===============================
+// SCAN FRAME
+// ===============================
+
+async function scanFrame() {
+
+  if (
+    video.readyState >= 2 &&
+    video.videoWidth
+  ) {
+
+
+    // Native QR detection
+
+    if (barcodeDetector) {
+
+      try {
+
+        const codes =
+          await barcodeDetector.detect(
+            video
+          );
+
+
+        if (codes.length > 0) {
+
+          handleQR(
+            codes[0].rawValue || ""
+          );
+
+        }
+
+      } catch (e) {}
+
+    }
+
+
+    // jsQR fallback
+
+    else {
+
+      canvas.width =
+        video.videoWidth;
+
+      canvas.height =
+        video.videoHeight;
+
+
+      ctx.drawImage(
+        video,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+
+      const image =
+        ctx.getImageData(
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
+
+
+      const code =
+        jsQR(
+          image.data,
+          image.width,
+          image.height,
+          {
+            inversionAttempts:
+              "dontInvert"
+          }
+        );
+
+
+      if (code) {
+
+        handleQR(
+          code.data
+        );
+
+      }
+
+    }
+
+  }
+
+
+  requestAnimationFrame(
+    scanFrame
+  );
+
+}
+
+
+
+// ===============================
+// GET BOX ID
+// ===============================
+
+function getBoxID(text) {
+
+  try {
+
+    const url =
+      new URL(text);
+
+
+    const box =
+      url.searchParams.get(
+        "box"
+      );
+
+
+    if (box) {
+
+      return box.trim();
+
+    }
+
+  } catch (e) {}
+
+
+  return text.trim();
+
+}
+
+
+
+// ===============================
+// QR FOUND
+// ===============================
+
+function handleQR(text) {
+
+  const box =
+    getBoxID(text);
+
+
+  if (
+    !box ||
+    !box.startsWith("BOX-")
+  ) {
+
+    return;
+
+  }
+
+
+  // Don't process same QR twice
+
+  if (
+    scanned.has(box)
+  ) {
+
+    return;
+
+  }
+
+
+  scanned.add(box);
+
+
+  document.getElementById(
+    "count"
+  ).textContent =
+    "Scanned: " +
+    scanned.size;
+
+
+  document.getElementById(
+    "last"
+  ).textContent =
+    "✓ " + box;
+
+
+  sendBox(box);
+
+}
+
+
+
+// ===============================
+// SEND TO GOOGLE SHEET
+// ===============================
+
+function sendBox(box) {
+
+  document.getElementById(
+    "status"
+  ).textContent =
+    "Processing " +
+    box +
+    "...";
+
+
+  const callback =
+    "cb_" +
+    Date.now() +
+    "_" +
+    Math.random()
+      .toString(36)
+      .substring(2);
+
+
+  window[callback] =
+    function(result) {
+
+
+      try {
+
+
+        if (result.ok) {
+
+          document.getElementById(
+            "status"
+          ).textContent =
+            "✓ " +
+            box +
+            " recorded • READY FOR NEXT BOX";
+
+        }
+
+
+        else {
+
+          scanned.delete(
+            box
+          );
+
+
+          document.getElementById(
+            "status"
+          ).textContent =
+            "ERROR: " +
+            result.message;
+
+        }
+
+
+      }
+
+
+      finally {
+
+        delete window[callback];
+
+
+        const script =
+          document.getElementById(
+            callback
+          );
+
+
+        if (script) {
+
+          script.remove();
+
+        }
+
+      }
+
+    };
+
+
+  const params =
+    new URLSearchParams({
+
+      api: "1",
+
+      box: box,
+
+      action: action,
+
+      employee: employee,
+
+      callback: callback
+
+    });
+
+
+  const script =
+    document.createElement(
+      "script"
+    );
+
+
+  script.id =
+    callback;
+
+
+  script.src =
+    API +
+    "?" +
+    params.toString();
+
+
+  script.onerror =
+    function() {
+
+
+      scanned.delete(
+        box
+      );
+
+
+      document.getElementById(
+        "status"
+      ).textContent =
+        "Connection error — scan again";
+
+
+      delete window[callback];
+
+
+      script.remove();
+
+    };
+
+
+  document.body.appendChild(
+    script
+  );
+
+}
+
+
+
+// ===============================
+// CAMERA ERROR
+// ===============================
+
+function cameraError(message) {
+
+  document.getElementById(
+    "status"
+  ).textContent =
+    message;
+
+}
+
+
+
+// START
+
+startCamera();
+
 </script>
+
 </body>
+
 </html>
