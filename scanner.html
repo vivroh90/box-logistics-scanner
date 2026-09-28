@@ -1,0 +1,137 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Box Scanner</title>
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<style>
+body{font-family:Arial,sans-serif;text-align:center;margin:0;padding:15px;background:#f7f7f7}
+.card{max-width:520px;margin:auto;background:white;padding:15px;border-radius:16px}
+h1{margin:5px 0}
+#reader{margin:15px auto;max-width:420px}
+#status{font-weight:bold;font-size:18px;margin:12px 0}
+#last{font-size:24px;font-weight:bold}
+#count{font-size:16px;color:#555;margin:8px}
+button{width:100%;box-sizing:border-box;padding:13px;margin:7px 0;font-size:17px;border-radius:10px;border:0;color:white;background:#1976d2}
+.small{font-size:13px;color:#666}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>BOX SCANNER</h1>
+<div id="modeText"></div>
+<div id="employeeText"></div>
+<div id="reader"></div>
+<div id="status">Starting camera...</div>
+<div id="last"></div>
+<div id="count">Scanned: 0</div>
+<button onclick="location.href='index.html'">BACK</button>
+<p class="small">Keep the camera moving from one QR to the next.</p>
+</div>
+<script>
+const API='https://script.google.com/macros/s/AKfycbxuGJBYBhbVKFoGOxiqLEyA7d6n1RgufqifsUBz5h1eUQTP0eZ2PXoc_tXvSj79ZRoD/exec';
+let scanner=null;
+const employee=sessionStorage.getItem("boxEmployee")||"";
+const action=sessionStorage.getItem("boxAction")||"";
+const scanned=new Set();
+let activeRequests=0;
+const MAX_REQUESTS=10;
+
+document.getElementById("modeText").textContent =
+  action==="SEND" ? "GODOWN — SEND" : "SHOP — RECEIVE";
+document.getElementById("employeeText").textContent =
+  "Employee: "+employee;
+
+function extractBox(text){
+  try{
+    const u=new URL(text);
+    return (u.searchParams.get("box")||"").trim();
+  }catch(e){
+    return text.trim();
+  }
+}
+
+function startCamera(){
+  if(!employee || !action){
+    location.href="index.html";
+    return;
+  }
+
+  scanner=new Html5Qrcode("reader");
+  const config={fps:15,qrbox:{width:260,height:260},aspectRatio:1.0};
+
+  Html5Qrcode.getCameras().then(devices=>{
+    if(!devices || devices.length===0) throw new Error("No camera found. Check camera permission.");
+    let cameraId=devices[0].id;
+    const back=devices.find(d=>/back|rear|environment/i.test(d.label||""));
+    if(back) cameraId=back.id;
+    return scanner.start(cameraId,config,onScan,()=>{});
+  }).then(()=>{
+    document.getElementById("status").textContent="READY — SCAN BOX";
+  }).catch(err=>{
+    document.getElementById("status").textContent=
+      "Camera error: "+(err&&err.message?err.message:err);
+  });
+}
+
+function onScan(decodedText){
+  const box=extractBox(decodedText);
+  if(!box || !box.startsWith("BOX-")) return;
+  if(scanned.has(box)) return;
+
+  scanned.add(box);
+  document.getElementById("count").textContent="Scanned: "+scanned.size;
+  document.getElementById("last").textContent="✓ "+box;
+
+  if(activeRequests>=MAX_REQUESTS){
+    setTimeout(()=>sendBox(box),150);
+  }else{
+    sendBox(box);
+  }
+}
+
+function sendBox(box){
+  activeRequests++;
+  document.getElementById("status").textContent="Processing "+box+"...";
+
+  const callback="boxCallback_"+Date.now()+"_"+Math.floor(Math.random()*100000);
+  window[callback]=function(result){
+    try{
+      if(result.ok){
+        document.getElementById("status").textContent=
+          "✓ "+box+" recorded • READY FOR NEXT BOX";
+      }else{
+        scanned.delete(box);
+        document.getElementById("status").textContent="ERROR: "+result.message;
+      }
+    }finally{
+      delete window[callback];
+      const s=document.getElementById(callback);
+      if(s)s.remove();
+      activeRequests=Math.max(0,activeRequests-1);
+    }
+  };
+
+  const params=new URLSearchParams({
+    api:"1",box:box,action:action,employee:employee,callback:callback
+  });
+
+  const script=document.createElement("script");
+  script.id=callback;
+  script.src=API+"?"+params.toString();
+  script.onerror=function(){
+    scanned.delete(box);
+    document.getElementById("status").textContent=
+      "Connection error for "+box+" — scan again.";
+    delete window[callback];
+    script.remove();
+    activeRequests=Math.max(0,activeRequests-1);
+  };
+  document.body.appendChild(script);
+}
+
+startCamera();
+</script>
+</body>
+</html>
