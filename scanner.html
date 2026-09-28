@@ -514,16 +514,16 @@ async function scanFrame() {
     return;
   }
 
-
   if (
     video.readyState >= 2 &&
     video.videoWidth > 0 &&
     video.videoHeight > 0
   ) {
 
+    let found = false;
 
     /*************************************************
-     * NATIVE BARCODE DETECTOR
+     * TRY NATIVE BARCODE DETECTOR
      *************************************************/
 
     if (barcodeDetector) {
@@ -533,28 +533,20 @@ async function scanFrame() {
         const codes =
           await barcodeDetector.detect(video);
 
-
         if (
           codes &&
-          codes.length > 0
+          codes.length > 0 &&
+          codes[0].rawValue
         ) {
 
-          const value =
-            codes[0].rawValue || "";
-
-          if (value) {
-
-            handleQR(value);
-
-          }
+          handleQR(codes[0].rawValue);
+          found = true;
 
         }
 
-      }
+      } catch (error) {
 
-      catch (error) {
-
-        // Ignore detector errors.
+        // Continue to jsQR fallback
 
       }
 
@@ -562,17 +554,16 @@ async function scanFrame() {
 
 
     /*************************************************
-     * jsQR FALLBACK
+     * ALWAYS USE jsQR AS FALLBACK
      *************************************************/
 
-    if (!barcodeDetector) {
+    if (!found) {
 
       canvas.width =
         video.videoWidth;
 
       canvas.height =
         video.videoHeight;
-
 
       ctx.drawImage(
         video,
@@ -581,7 +572,6 @@ async function scanFrame() {
         canvas.width,
         canvas.height
       );
-
 
       try {
 
@@ -593,31 +583,26 @@ async function scanFrame() {
             canvas.height
           );
 
-
         const code =
           jsQR(
             image.data,
             image.width,
             image.height,
             {
-              inversionAttempts:
-                "dontInvert"
+              inversionAttempts: "attemptBoth"
             }
           );
 
-
-        if (code) {
+        if (code && code.data) {
 
           handleQR(code.data);
 
         }
 
-      }
-
-      catch (error) {
+      } catch (error) {
 
         console.log(
-          "QR scan error:",
+          "jsQR error:",
           error
         );
 
@@ -627,9 +612,7 @@ async function scanFrame() {
 
   }
 
-
   requestAnimationFrame(scanFrame);
-
 }
 
 
