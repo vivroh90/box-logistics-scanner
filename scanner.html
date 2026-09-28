@@ -3,158 +3,157 @@
 
 <head>
 
-  <meta charset="UTF-8">
+<meta charset="UTF-8">
 
-  <meta
-    name="viewport"
-    content="width=device-width,initial-scale=1"
-  >
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1"
+>
 
-  <title>Box Scanner</title>
+<title>Box Scanner</title>
 
-  <!-- QR scanner library -->
-  <script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
 
-  <style>
+<style>
 
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #f5f5f5;
-      padding: 10px;
-      margin: 0;
-    }
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: #f5f5f5;
+  padding: 10px;
+  margin: 0;
+}
 
-    .card {
-      max-width: 520px;
-      margin: auto;
-      background: white;
-      padding: 15px;
-      border-radius: 16px;
-      box-sizing: border-box;
-    }
+.card {
+  max-width: 520px;
+  margin: auto;
+  background: white;
+  padding: 15px;
+  border-radius: 16px;
+  box-sizing: border-box;
+}
 
-    h1 {
-      margin: 8px 0 15px;
-    }
+h1 {
+  margin: 8px 0 15px;
+}
 
-    #mode {
-      font-size: 20px;
-      font-weight: bold;
-      margin: 8px 0;
-    }
+#mode {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 8px 0;
+}
 
-    #emp {
-      font-size: 16px;
-      margin: 8px 0 15px;
-    }
+#emp {
+  font-size: 16px;
+  margin: 8px 0 15px;
+}
 
-    #video {
-      width: 100%;
-      max-width: 480px;
-      background: black;
-      border-radius: 12px;
-      display: block;
-      margin: auto;
-    }
+#video {
+  width: 100%;
+  max-width: 480px;
+  background: black;
+  border-radius: 12px;
+  display: block;
+  margin: auto;
+}
 
-    #status {
-      font-weight: bold;
-      font-size: 18px;
-      margin: 15px 5px;
-    }
+#status {
+  font-weight: bold;
+  font-size: 18px;
+  margin: 15px 5px;
+}
 
-    #last {
-      font-size: 24px;
-      font-weight: bold;
-      margin: 10px;
-    }
+#last {
+  font-size: 24px;
+  font-weight: bold;
+  margin: 10px;
+  word-break: break-all;
+}
 
-    #count {
-      font-size: 16px;
-      margin: 10px;
-    }
+#count {
+  font-size: 16px;
+  margin: 10px;
+}
 
-    button {
-      width: 100%;
-      padding: 14px;
-      font-size: 17px;
-      border: 0;
-      border-radius: 10px;
-      background: #1976d2;
-      color: white;
-      margin-top: 10px;
-    }
+button {
+  width: 100%;
+  padding: 14px;
+  font-size: 17px;
+  border: 0;
+  border-radius: 10px;
+  background: #1976d2;
+  color: white;
+  margin-top: 10px;
+}
 
-    #permissionHelp {
-      display: none;
-      background: #fff3cd;
-      border-radius: 10px;
-      padding: 12px;
-      margin-top: 10px;
-      font-size: 15px;
-      line-height: 1.5;
-    }
+#permissionHelp {
+  display: none;
+  background: #fff3cd;
+  border-radius: 10px;
+  padding: 12px;
+  margin-top: 10px;
+  font-size: 15px;
+  line-height: 1.5;
+}
 
-  </style>
+</style>
 
 </head>
 
 
 <body>
 
-
 <div class="card">
 
-  <h1>BOX SCANNER</h1>
+<h1>BOX SCANNER</h1>
 
-  <div id="mode">
-    Loading...
-  </div>
+<div id="mode">
+Loading...
+</div>
 
-  <div id="emp">
-    Employee:
-  </div>
+<div id="emp">
+Employee:
+</div>
 
-  <video
-    id="video"
-    autoplay
-    playsinline
-    muted>
-  </video>
+<video
+  id="video"
+  autoplay
+  playsinline
+  muted>
+</video>
 
-  <canvas
-    id="canvas"
-    hidden>
-  </canvas>
+<canvas
+  id="canvas"
+  hidden>
+</canvas>
 
-  <div id="status">
-    Opening camera...
-  </div>
+<div id="status">
+Opening camera...
+</div>
 
-  <div id="last"></div>
+<div id="last"></div>
 
-  <div id="count">
-    Scanned: 0
-  </div>
+<div id="count">
+Scanned: 0
+</div>
 
-  <div id="permissionHelp">
+<div id="permissionHelp">
 
-    <b>Camera permission required</b><br><br>
+<b>Camera permission required</b><br><br>
 
-    Allow camera access for this website
-    and reload the page.
+Allow camera access for this website
+and reload the page.
 
-    <br><br>
+<br><br>
 
-    On Android Chrome:<br>
-    Site settings → Camera → Allow
+On Android Chrome:<br>
+Site settings → Camera → Allow
 
-  </div>
+</div>
 
-  <button onclick="back()">
-    BACK
-  </button>
+<button onclick="back()">
+BACK
+</button>
 
 </div>
 
@@ -162,17 +161,17 @@
 <script>
 
 
-// ==================================================
-// GOOGLE APPS SCRIPT
-// ==================================================
+/*************************************************
+ * GOOGLE APPS SCRIPT
+ *************************************************/
 
 const API =
-"https://script.google.com/macros/s/AKfycbxuGJBYBhbVKFoGOxiqLEyA7d6n1RgufqifsUBz5h1eUQTP0eZ2PXoc_tXvSj79ZRoD/exec";
+"https://script.google.com/macros/s/AKfycbxuGJBYBhbVKFoGOxiqLEyA7d6n1RgufqifsUBz5h1eUQTPoE2zPXoc_tXvSj79ZRoD/exec";
 
 
-// ==================================================
-// SESSION DATA
-// ==================================================
+/*************************************************
+ * SESSION DATA
+ *************************************************/
 
 const employee =
   sessionStorage.getItem("boxEmployee") || "";
@@ -181,9 +180,9 @@ const action =
   sessionStorage.getItem("boxAction") || "";
 
 
-// ==================================================
-// HTML ELEMENTS
-// ==================================================
+/*************************************************
+ * HTML ELEMENTS
+ *************************************************/
 
 const video =
   document.getElementById("video");
@@ -192,12 +191,9 @@ const canvas =
   document.getElementById("canvas");
 
 const ctx =
-  canvas.getContext(
-    "2d",
-    {
-      willReadFrequently: true
-    }
-  );
+  canvas.getContext("2d", {
+    willReadFrequently: true
+  });
 
 const statusElement =
   document.getElementById("status");
@@ -218,24 +214,21 @@ const helpElement =
   document.getElementById("permissionHelp");
 
 
-// ==================================================
-// VARIABLES
-// ==================================================
+/*************************************************
+ * VARIABLES
+ *************************************************/
 
 let stream = null;
-
 let barcodeDetector = null;
-
 let processing = false;
-
 let scanRunning = true;
 
 const scanned = new Set();
 
 
-// ==================================================
-// DISPLAY MODE
-// ==================================================
+/*************************************************
+ * DISPLAY MODE
+ *************************************************/
 
 if (action === "SEND") {
 
@@ -248,6 +241,13 @@ else if (action === "RECEIVE") {
 
   modeElement.textContent =
     "SHOP — RECEIVE";
+
+}
+
+else if (action === "RETURN") {
+
+  modeElement.textContent =
+    "SHOP — RETURN";
 
 }
 
@@ -270,23 +270,22 @@ employeeElement.textContent =
   "Employee: " + employee;
 
 
-// ==================================================
-// BACK BUTTON
-// ==================================================
+/*************************************************
+ * BACK
+ *************************************************/
 
 function back() {
 
   stopCamera();
 
-  location.href =
-    "index.html";
+  location.href = "index.html";
 
 }
 
 
-// ==================================================
-// STOP CAMERA
-// ==================================================
+/*************************************************
+ * STOP CAMERA
+ *************************************************/
 
 function stopCamera() {
 
@@ -296,11 +295,9 @@ function stopCamera() {
 
     stream
       .getTracks()
-      .forEach(
-        function(track) {
-          track.stop();
-        }
-      );
+      .forEach(function(track) {
+        track.stop();
+      });
 
     stream = null;
   }
@@ -308,9 +305,9 @@ function stopCamera() {
 }
 
 
-// ==================================================
-// CAMERA ERROR
-// ==================================================
+/*************************************************
+ * CAMERA ERROR
+ *************************************************/
 
 function cameraError(message) {
 
@@ -323,14 +320,11 @@ function cameraError(message) {
 }
 
 
-// ==================================================
-// START CAMERA
-// ==================================================
+/*************************************************
+ * START CAMERA
+ *************************************************/
 
 async function startCamera() {
-
-
-  // Check session
 
   if (!employee || !action) {
 
@@ -340,8 +334,6 @@ async function startCamera() {
     return;
   }
 
-
-  // Check browser support
 
   if (
     !navigator.mediaDevices ||
@@ -361,11 +353,6 @@ async function startCamera() {
 
 
   try {
-
-
-    // ==================================================
-    // REQUEST REAR CAMERA
-    // ==================================================
 
     stream =
       await navigator.mediaDevices.getUserMedia({
@@ -399,32 +386,24 @@ async function startCamera() {
       stream;
 
 
-    // Wait until video is ready
+    await new Promise(function(resolve) {
 
-    await new Promise(
-      function(resolve) {
+      if (video.readyState >= 2) {
 
-        if (
-          video.readyState >= 2
-        ) {
-
-          resolve();
-
-        }
-
-        else {
-
-          video.onloadedmetadata =
-            function() {
-
-              resolve();
-
-            };
-
-        }
+        resolve();
 
       }
-    );
+
+      else {
+
+        video.onloadedmetadata =
+          function() {
+            resolve();
+          };
+
+      }
+
+    });
 
 
     await video.play();
@@ -438,48 +417,36 @@ async function startCamera() {
       "none";
 
 
-    // ==================================================
-    // NATIVE BARCODE DETECTOR
-    // ==================================================
+    /*************************************************
+     * NATIVE BARCODE DETECTOR
+     *************************************************/
 
-    if (
-      "BarcodeDetector" in window
-    ) {
+    if ("BarcodeDetector" in window) {
 
       try {
 
         barcodeDetector =
           new BarcodeDetector({
-
-            formats: [
-              "qr_code"
-            ]
-
+            formats: ["qr_code"]
           });
 
       }
 
       catch (error) {
 
-        barcodeDetector =
-          null;
+        barcodeDetector = null;
 
       }
 
     }
 
 
-    // Start scanning
-
-    requestAnimationFrame(
-      scanFrame
-    );
-
+    requestAnimationFrame(scanFrame);
 
   }
 
-  catch (error) {
 
+  catch (error) {
 
     console.log(
       "Camera error:",
@@ -520,17 +487,6 @@ async function startCamera() {
 
     }
 
-    else if (
-      error.name ===
-      "SecurityError"
-    ) {
-
-      cameraError(
-        "Camera access is blocked by browser security."
-      );
-
-    }
-
     else {
 
       cameraError(
@@ -548,17 +504,14 @@ async function startCamera() {
 }
 
 
-// ==================================================
-// SCAN FRAME
-// ==================================================
+/*************************************************
+ * SCAN FRAME
+ *************************************************/
 
 async function scanFrame() {
 
-
   if (!scanRunning) {
-
     return;
-
   }
 
 
@@ -569,18 +522,16 @@ async function scanFrame() {
   ) {
 
 
-    // ==================================================
-    // NATIVE BARCODE DETECTOR
-    // ==================================================
+    /*************************************************
+     * NATIVE BARCODE DETECTOR
+     *************************************************/
 
     if (barcodeDetector) {
 
       try {
 
         const codes =
-          await barcodeDetector.detect(
-            video
-          );
+          await barcodeDetector.detect(video);
 
 
         if (
@@ -603,20 +554,18 @@ async function scanFrame() {
 
       catch (error) {
 
-        // Ignore native detector errors.
-        // jsQR will be used below if necessary.
+        // Ignore detector errors.
 
       }
 
     }
 
 
-    // ==================================================
-    // jsQR FALLBACK
-    // ==================================================
+    /*************************************************
+     * jsQR FALLBACK
+     *************************************************/
 
     if (!barcodeDetector) {
-
 
       canvas.width =
         video.videoWidth;
@@ -626,17 +575,11 @@ async function scanFrame() {
 
 
       ctx.drawImage(
-
         video,
-
         0,
-
         0,
-
         canvas.width,
-
         canvas.height
-
       );
 
 
@@ -644,42 +587,28 @@ async function scanFrame() {
 
         const image =
           ctx.getImageData(
-
             0,
-
             0,
-
             canvas.width,
-
             canvas.height
-
           );
 
 
         const code =
           jsQR(
-
             image.data,
-
             image.width,
-
             image.height,
-
             {
-
               inversionAttempts:
                 "dontInvert"
-
             }
-
           );
 
 
         if (code) {
 
-          handleQR(
-            code.data
-          );
+          handleQR(code.data);
 
         }
 
@@ -699,16 +628,24 @@ async function scanFrame() {
   }
 
 
-  requestAnimationFrame(
-    scanFrame
-  );
+  requestAnimationFrame(scanFrame);
 
 }
 
 
-// ==================================================
-// EXTRACT BOX ID
-// ==================================================
+/*************************************************
+ * EXTRACT BOX ID
+ *
+ * Supports:
+ *
+ * https://.../?box=BOX-000001
+ *
+ * https://.../?box=CA90.260928-00001
+ *
+ * https://.../?box=NOV500.260928-00001
+ *
+ * Plain IDs also work.
+ *************************************************/
 
 function getBoxID(text) {
 
@@ -716,7 +653,9 @@ function getBoxID(text) {
     String(text || "").trim();
 
 
-  // QR contains URL
+  /*************************************************
+   * QR contains URL
+   *************************************************/
 
   try {
 
@@ -725,14 +664,16 @@ function getBoxID(text) {
 
 
     const box =
-      url.searchParams.get(
-        "box"
-      );
+      url.searchParams.get("box");
 
 
     if (box) {
 
-      return box.trim();
+      return decodeURIComponent(
+        box
+      )
+      .trim()
+      .toUpperCase();
 
     }
 
@@ -740,42 +681,104 @@ function getBoxID(text) {
 
   catch (error) {
 
-    // QR may contain plain BOX-xxxxx
+    // QR may contain plain Box ID.
+
   }
 
 
-  // Plain Box ID
+  /*************************************************
+   * Plain Box ID
+   *************************************************/
 
-  return text.trim();
+  return text
+    .trim()
+    .toUpperCase();
 
 }
 
 
-// ==================================================
-// QR FOUND
-// ==================================================
+/*************************************************
+ * VALIDATE BOX ID
+ *
+ * IMPORTANT:
+ *
+ * OLD:
+ * BOX-000001
+ *
+ * NEW:
+ * CA90.260928-00001
+ * NOV500.260928-00001
+ *
+ * The backend performs the final
+ * Product Master validation.
+ *************************************************/
+
+function isValidBoxID(box) {
+
+  if (!box) {
+    return false;
+  }
+
+
+  /*************************************************
+   * OLD BOX FORMAT
+   *************************************************/
+
+  if (
+    /^BOX-\d+$/i.test(box)
+  ) {
+
+    return true;
+
+  }
+
+
+  /*************************************************
+   * NEW PRODUCT/DATE FORMAT
+   *
+   * Example:
+   * CA90.260928-00001
+   * NOV500.260928-00001
+   *************************************************/
+
+  if (
+    /^[A-Z0-9]+?\.\d{6}-\d{5}$/i.test(box)
+  ) {
+
+    return true;
+
+  }
+
+
+  return false;
+
+}
+
+
+/*************************************************
+ * QR FOUND
+ *************************************************/
 
 function handleQR(text) {
-
 
   const box =
     getBoxID(text);
 
 
-  // Validate
+  /*************************************************
+   * VALIDATE
+   *************************************************/
 
-  if (
-    !box ||
-    !box.startsWith("BOX-")
-  ) {
+  if (!isValidBoxID(box)) {
 
     return;
 
   }
 
 
-  // Already scanned during
-  // this session
+  /*************************************************
+   * ALREADY SCANNED
+   *************************************************/
 
   if (
     scanned.has(box)
@@ -786,7 +789,9 @@ function handleQR(text) {
   }
 
 
-  // Wait for previous request
+  /*************************************************
+   * WAIT FOR PREVIOUS REQUEST
+   *************************************************/
 
   if (processing) {
 
@@ -814,12 +819,11 @@ function handleQR(text) {
 }
 
 
-// ==================================================
-// SEND BOX TO GOOGLE APPS SCRIPT
-// ==================================================
+/*************************************************
+ * SEND BOX TO APPS SCRIPT
+ *************************************************/
 
 function sendBox(box) {
-
 
   statusElement.textContent =
     "Processing " +
@@ -839,28 +843,23 @@ function sendBox(box) {
   window[callback] =
     function(result) {
 
-
       try {
-
 
         if (
           result &&
           result.ok
         ) {
 
+          if (action === "RETURN") {
 
-          statusElement.textContent =
-            "✓ " +
-            box +
-            " recorded";
+            statusElement.textContent =
+              "✓ " +
+              box +
+              " RETURNED — READY FOR NEXT BOX";
 
+          }
 
-          // Show correction result clearly
-
-          if (
-            action ===
-            "CORRECT"
-          ) {
+          else if (action === "CORRECT") {
 
             statusElement.textContent =
               "✓ " +
@@ -877,16 +876,11 @@ function sendBox(box) {
 
           }
 
-
         }
 
         else {
 
-
-          scanned.delete(
-            box
-          );
-
+          scanned.delete(box);
 
           statusElement.textContent =
             "ERROR: " +
@@ -901,41 +895,25 @@ function sendBox(box) {
 
       }
 
-
       finally {
 
-
-        delete window[
-          callback
-        ];
+        delete window[callback];
 
 
         const script =
-          document.getElementById(
-            callback
-          );
+          document.getElementById(callback);
 
 
         if (script) {
-
           script.remove();
-
         }
 
 
-        // Allow next QR
-
         setTimeout(
-
           function() {
-
-            processing =
-              false;
-
+            processing = false;
           },
-
           500
-
         );
 
       }
@@ -943,9 +921,9 @@ function sendBox(box) {
     };
 
 
-  // ==================================================
-  // REQUEST PARAMETERS
-  // ==================================================
+  /*************************************************
+   * REQUEST PARAMETERS
+   *************************************************/
 
   const params =
     new URLSearchParams({
@@ -963,14 +941,12 @@ function sendBox(box) {
     });
 
 
-  // ==================================================
-  // JSONP REQUEST
-  // ==================================================
+  /*************************************************
+   * JSONP REQUEST
+   *************************************************/
 
   const script =
-    document.createElement(
-      "script"
-    );
+    document.createElement("script");
 
 
   script.id =
@@ -986,45 +962,34 @@ function sendBox(box) {
   script.onerror =
     function() {
 
-
-      scanned.delete(
-        box
-      );
+      scanned.delete(box);
 
 
       statusElement.textContent =
         "Connection error — scan again";
 
 
-      delete window[
-        callback
-      ];
-
+      delete window[callback];
 
       script.remove();
 
-
-      processing =
-        false;
+      processing = false;
 
     };
 
 
-  document.body.appendChild(
-    script
-  );
+  document.body.appendChild(script);
 
 }
 
 
-// ==================================================
-// START
-// ==================================================
+/*************************************************
+ * START
+ *************************************************/
 
 startCamera();
 
 </script>
 
 </body>
-
 </html>
