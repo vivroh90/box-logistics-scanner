@@ -1,38 +1,99 @@
-
 <!doctype html>
 <html>
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Box Logistics</title>
-<style>
-body{font-family:Arial,sans-serif;text-align:center;margin:0;padding:20px;background:#f7f7f7}
-.card{max-width:520px;margin:auto;background:white;padding:20px;border-radius:16px}
-h1{margin-top:5px} input,select,button{width:100%;box-sizing:border-box;padding:15px;margin:8px 0;font-size:18px;border-radius:10px}
-input,select{border:1px solid #bbb} button{border:0;color:#fff;background:#1976d2}
-.small{font-size:13px;color:#666}
-</style>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Box Logistics</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    .card {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 15px;
+      margin: 8px 0;
+      font-size: 18px;
+      box-sizing: border-box;
+      border-radius: 10px;
+    }
+
+    input, select {
+      border: 1px solid #bbb;
+    }
+
+    button {
+      background: #1976d2;
+      color: white;
+      border: 0;
+    }
+  </style>
 </head>
+
 <body>
+
 <div class="card">
-<h1>BOX LOGISTICS</h1>
-<select id="mode">
-<option value="SEND">GODOWN — SEND</option>
-<option value="RECEIVE">SHOP — RECEIVE</option>
-</select>
-<input id="employee" placeholder="Employee name" autocomplete="name">
-<button onclick="start()">START SCANNING</button>
-<p class="small">Camera opens on the next page.</p>
+
+  <h1>BOX LOGISTICS</h1>
+
+  <select id="mode">
+    <option value="SEND">GODOWN — SEND</option>
+    <option value="RECEIVE">SHOP — RECEIVE</option>
+  </select>
+
+  <input
+    id="employee"
+    placeholder="Employee name"
+    autocomplete="name"
+  >
+
+  <button onclick="start()">
+    START SCANNING
+  </button>
+
 </div>
+
 <script>
-function start(){
-  const employee=document.getElementById("employee").value.trim();
-  const action=document.getElementById("mode").value;
-  if(!employee){alert("Enter employee name first");return;}
-  sessionStorage.setItem("boxEmployee",employee);
-  sessionStorage.setItem("boxAction",action);
-  window.location.href="scanner.html";
+
+function start() {
+
+  const employee =
+    document.getElementById("employee").value.trim();
+
+  const action =
+    document.getElementById("mode").value;
+
+  if (!employee) {
+    alert("Enter employee name");
+    return;
+  }
+
+  sessionStorage.setItem(
+    "boxEmployee",
+    employee
+  );
+
+  sessionStorage.setItem(
+    "boxAction",
+    action
+  );
+
+  // Open camera on NEW PAGE
+  location.href = "scanner.html";
 }
+
 </script>
+
 </body>
 </html>
