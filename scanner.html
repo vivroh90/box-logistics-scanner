@@ -156,10 +156,12 @@ let barcodeDetector = null;
 
 // Display employee and mode
 
-document.getElementById("mode").textContent =
+document.getElementById("modeText").textContent =
   action === "SEND"
     ? "GODOWN — SEND"
-    : "SHOP — RECEIVE";
+    : action === "RECEIVE"
+      ? "SHOP — RECEIVE"
+      : "CORRECT — UNDO SCAN";
 
 
 document.getElementById("emp").textContent =
