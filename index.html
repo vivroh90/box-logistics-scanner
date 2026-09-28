@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Box Logistics Scanner</title>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    body{font-family:Arial,sans-serif;text-align:center;margin:0;padding:20px;background:#f7f7f7}
+    .card{max-width:520px;margin:auto;background:white;padding:20px;border-radius:16px}
+    h1{margin-top:5px}
+    input,select,button{width:100%;box-sizing:border-box;padding:15px;margin:8px 0;font-size:18px;border-radius:10px}
+    input,select{border:1px solid #bbb}
+    button{border:0;color:#fff;background:#1976d2}
+    #reader{margin:15px auto;max-width:420px}
+    #status{font-weight:bold;font-size:18px;margin:15px 0}
+    #last{font-size:24px;font-weight:bold}
+    .small{font-size:13px;color:#666}
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>BOX LOGISTICS</h1>
+
+  <select id="mode">
+    <option value="SEND">GODOWN — SEND</option>
+    <option value="RECEIVE">SHOP — RECEIVE</option>
+  </select>
+
+  <input id="employee" placeholder="Employee name">
+
+  <button id="start" onclick="startScanner()">START SCANNING</button>
+
+  <div id="reader"></div>
+  <div id="status">Enter employee name and start scanning.</div>
+  <div id="last"></div>
+  <p class="small">Employee is entered once. Scan boxes continuously.</p>
+</div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbwt028zIynp1_pIc4misPyVDqUafqagQgc7bTcfd8pkQmff1BzO-WkUBH5rd15r5otj/exec";
+let scanner = null;
+let employee = "";
+let action = "";
+let busy = false;
+const scanned = new Set();
+
+function startScanner(){
+  employee = document.getElementById("employee").value.trim();
+  action = document.getElementById("mode").value;
+
+  if(!employee){ alert("Enter employee name first"); return; }
+
+  document.getElementById("status").textContent = "Starting camera...";
+  document.getElementById("start").disabled = true;
+
+  scanner = new Html5Qrcode("reader");
+
+  scanner.start(
+    {facingMode:"environment"},
+    {fps:10, qrbox:{width:260,height:260}},
+    onScan,
+    () => {}
+  ).then(() => {
+    document.getElementById("status").textContent = "READY — SCAN BOX";
+  }).catch(err => {
+    document.getElementById("status").textContent =
+      "Camera error: " + err;
+    document.getElementById("start").disabled = false;
+  });
+}
+
+function extractBox(text){
+  try{
+    const u = new URL(text);
+    return (u.searchParams.get("box") || "").trim();
+  }catch(e){
+    return text.trim();
+  }
+}
+
+function onScan(decodedText){
+  if(busy) return;
+
+  const box = extractBox(decodedText);
+  if(!box || !box.startsWith("BOX-")){
+    document.getElementById("status").textContent = "Invalid box QR";
+    return;
+  }
+
+  if(scanned.has(box)) return;
+
+  busy = true;
+  document.getElementById("status").textContent = "Recording " + box + "...";
+
+  const callback = "boxCallback_" + Date.now();
+  window[callback] = function(result){
+    try{
+      if(result.ok){
+        scanned.add(box);
+        document.getElementById("last").textContent = "✓ " + box;
+        document.getElementById("status").textContent =
+          result.message + " — READY FOR NEXT BOX";
+      }else{
+        document.getElementById("status").textContent =
+          "ERROR: " + result.message;
+      }
+    }finally{
+      delete window[callback];
+      const s = document.getElementById(callback);
+      if(s) s.remove();
+      setTimeout(()=>{busy=false;},700);
+    }
+  };
+
+  const params = new URLSearchParams({
+    api:"1",
+    box:box,
+    action:action,
+    employee:employee,
+    callback:callback
+  });
+
+  const script = document.createElement("script");
+  script.id = callback;
+  script.src = API + "?" + params.toString();
+  script.onerror = function(){
+    document.getElementById("status").textContent =
+      "Connection error. Check internet.";
+    delete window[callback];
+    script.remove();
+    setTimeout(()=>{busy=false;},1000);
+  };
+  document.body.appendChild(script);
+}
+</script>
+</body>
+</html>
