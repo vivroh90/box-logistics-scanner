@@ -1,20 +1,13 @@
 <!doctype html>
-
 <html>
 
 <head>
 
-  <meta
-    name="viewport"
-    content="width=device-width,initial-scale=1"
-  >
+  <meta name="viewport" content="width=device-width,initial-scale=1">
 
   <title>Box Scanner</title>
 
-  <!-- QR scanner library -->
-  <script
-    src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js">
-  </script>
+  <script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
 
   <style>
 
@@ -51,6 +44,22 @@
       font-weight: bold;
     }
 
+    #count {
+      font-size: 16px;
+      margin: 10px;
+    }
+
+    #mode {
+      font-size: 20px;
+      font-weight: bold;
+      margin: 8px;
+    }
+
+    #emp {
+      font-size: 16px;
+      margin: 8px;
+    }
+
     button {
       width: 100%;
       padding: 13px;
@@ -65,7 +74,6 @@
 
 </head>
 
-
 <body>
 
 <div class="card">
@@ -78,7 +86,6 @@
 
   <br>
 
-  <!-- PHONE CAMERA -->
   <video
     id="video"
     autoplay
@@ -113,27 +120,34 @@
 <script>
 
 
-// YOUR NEW APPS SCRIPT URL
+// ===============================
+// APPS SCRIPT URL
+// ===============================
 
 const API =
 "https://script.google.com/macros/s/AKfycbxuGJBYBhbVKFoGOxiqLEyA7d6n1RgufqifsUBz5h1eUQTP0eZ2PXoc_tXvSj79ZRoD/exec";
 
 
+// ===============================
+// SESSION DATA
+// ===============================
+
 const employee =
   sessionStorage.getItem("boxEmployee") || "";
-
 
 const action =
   sessionStorage.getItem("boxAction") || "";
 
 
+// ===============================
+// ELEMENTS
+// ===============================
+
 const video =
   document.getElementById("video");
 
-
 const canvas =
   document.getElementById("canvas");
-
 
 const ctx =
   canvas.getContext(
@@ -144,29 +158,36 @@ const ctx =
   );
 
 
+// ===============================
+// VARIABLES
+// ===============================
+
 const scanned =
   new Set();
 
-
 let stream = null;
-
 
 let barcodeDetector = null;
 
+let processing = false;
 
-// Display employee and mode
 
-document.getElementById("modeText").textContent =
+// ===============================
+// DISPLAY MODE
+// ===============================
+
+document.getElementById("mode").textContent =
   action === "SEND"
     ? "GODOWN — SEND"
     : action === "RECEIVE"
       ? "SHOP — RECEIVE"
-      : "CORRECT — UNDO SCAN";
+      : action === "CORRECT"
+        ? "CORRECT — UNDO SCAN"
+        : "UNKNOWN MODE";
 
 
 document.getElementById("emp").textContent =
   "Employee: " + employee;
-
 
 
 // ===============================
@@ -185,7 +206,6 @@ function back() {
 
   location.href = "index.html";
 }
-
 
 
 // ===============================
@@ -217,8 +237,6 @@ async function startCamera() {
 
   try {
 
-    // DIRECT PHONE CAMERA
-
     stream =
       await navigator.mediaDevices.getUserMedia({
 
@@ -245,7 +263,6 @@ async function startCamera() {
 
     video.srcObject = stream;
 
-
     await video.play();
 
 
@@ -253,8 +270,7 @@ async function startCamera() {
       "READY — SCAN BOX";
 
 
-    // Use phone's native QR detector
-    // when available
+    // Native QR detector if supported
 
     if ("BarcodeDetector" in window) {
 
@@ -289,7 +305,6 @@ async function startCamera() {
   }
 
 }
-
 
 
 // ===============================
@@ -390,7 +405,6 @@ async function scanFrame() {
 }
 
 
-
 // ===============================
 // GET BOX ID
 // ===============================
@@ -423,7 +437,6 @@ function getBoxID(text) {
 }
 
 
-
 // ===============================
 // QR FOUND
 // ===============================
@@ -444,7 +457,7 @@ function handleQR(text) {
   }
 
 
-  // Don't process same QR twice
+  // Prevent duplicate scanning
 
   if (
     scanned.has(box)
@@ -454,6 +467,18 @@ function handleQR(text) {
 
   }
 
+
+  // Prevent another request while
+  // current QR is being processed
+
+  if (processing) {
+
+    return;
+
+  }
+
+
+  processing = true;
 
   scanned.add(box);
 
@@ -476,9 +501,8 @@ function handleQR(text) {
 }
 
 
-
 // ===============================
-// SEND TO GOOGLE SHEET
+// SEND TO GOOGLE SHEETS
 // ===============================
 
 function sendBox(box) {
@@ -503,9 +527,7 @@ function sendBox(box) {
   window[callback] =
     function(result) {
 
-
       try {
-
 
         if (result.ok) {
 
@@ -518,13 +540,9 @@ function sendBox(box) {
 
         }
 
-
         else {
 
-          scanned.delete(
-            box
-          );
-
+          scanned.delete(box);
 
           document.getElementById(
             "status"
@@ -534,9 +552,7 @@ function sendBox(box) {
 
         }
 
-
       }
-
 
       finally {
 
@@ -554,6 +570,18 @@ function sendBox(box) {
           script.remove();
 
         }
+
+
+        // Allow next QR
+
+        setTimeout(
+          function() {
+
+            processing = false;
+
+          },
+          500
+        );
 
       }
 
@@ -595,10 +623,7 @@ function sendBox(box) {
   script.onerror =
     function() {
 
-
-      scanned.delete(
-        box
-      );
+      scanned.delete(box);
 
 
       document.getElementById(
@@ -612,6 +637,9 @@ function sendBox(box) {
 
       script.remove();
 
+
+      processing = false;
+
     };
 
 
@@ -620,7 +648,6 @@ function sendBox(box) {
   );
 
 }
-
 
 
 // ===============================
@@ -637,8 +664,9 @@ function cameraError(message) {
 }
 
 
-
+// ===============================
 // START
+// ===============================
 
 startCamera();
 
