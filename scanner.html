@@ -225,12 +225,15 @@ let stream = null;
 
 let barcodeDetector = null;
 
-let processing = false;
-
 let scanRunning = true;
 
 const scanned = new Set();
 
+let activeRequests = 0;
+
+const MAX_ACTIVE_REQUESTS = 5;
+
+const requestQueue = [];
 
 // ==================================================
 // DISPLAY MODE
@@ -877,16 +880,21 @@ function handleQR(text) {
   // WAIT FOR PREVIOUS REQUEST
   // ------------------------------------------------
 
-  if (processing) {
-
+  if (scanned.has(box)) {
     return;
+}
 
-  }
+scanned.add(box);
 
+if (activeRequests < MAX_ACTIVE_REQUESTS) {
 
-  processing = true;
+    sendBox(box);
 
-  scanned.add(box);
+} else {
+
+    requestQueue.push(box);
+
+}
 
 
   countElement.textContent =
@@ -898,7 +906,7 @@ function handleQR(text) {
     "✓ " + box;
 
 
-  sendBox(box);
+  
 
 }
 
@@ -938,41 +946,40 @@ function sendBox(box) {
 
   function finish() {
 
-
     if (finished) {
-
-      return;
-
+        return;
     }
-
 
     finished = true;
 
-
-    delete window[
-      callback
-    ];
-
+    delete window[callback];
 
     const script =
-      document.getElementById(
-        callback
-      );
-
+        document.getElementById(callback);
 
     if (script) {
-
-      script.remove();
-
+        script.remove();
     }
 
+    activeRequests =
+        Math.max(
+            0,
+            activeRequests - 1
+        );
 
-    processing =
-      false;
+    // Process next queued box
+    if (
+        requestQueue.length > 0 &&
+        activeRequests < MAX_ACTIVE_REQUESTS
+    ) {
 
-  }
+        const nextBox =
+            requestQueue.shift();
 
+        sendBox(nextBox);
+    }
 
+}
   // ------------------------------------------------
   // JSONP CALLBACK
   // ------------------------------------------------
@@ -986,7 +993,7 @@ function sendBox(box) {
 
         if (
           result &&
-          result.ok
+          result.success
         ) {
 
 
