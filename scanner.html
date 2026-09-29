@@ -576,6 +576,9 @@ async function startCamera() {
 // SCAN FRAME
 // ==================================================
 
+let lastJsQRScan = 0;
+const JSQR_INTERVAL = 120;
+
 async function scanFrame() {
 
 
@@ -647,14 +650,25 @@ async function scanFrame() {
     // ALWAYS TRY jsQR IF NATIVE DID NOT FIND A QR
     // ==================================================
 
-    if (!nativeFound) {
+    if (
+      !nativeFound &&
+      Date.now() - lastJsQRScan >= JSQR_INTERVAL
+    ) {
 
+      lastJsQRScan = Date.now();
+
+      // Process a smaller frame for faster QR detection.
+      const maxScanWidth = 640;
+      const scale = Math.min(
+        1,
+        maxScanWidth / video.videoWidth
+      );
 
       canvas.width =
-        video.videoWidth;
+        Math.floor(video.videoWidth * scale);
 
       canvas.height =
-        video.videoHeight;
+        Math.floor(video.videoHeight * scale);
 
 
       ctx.drawImage(
