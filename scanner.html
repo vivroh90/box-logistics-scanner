@@ -131,7 +131,7 @@
   </canvas>
 
   <div id="status">
-    Opening camera...
+    READY — CAMERA OR HT20 SCANNER
   </div>
 
   <div id="last"></div>
@@ -1216,15 +1216,80 @@ function sendBox(box) {
 
 
 // ==================================================
-// START
+// HT20 USB SCANNER
+// ==================================================
+
+let scannerBuffer = "";
+let scannerTimer = null;
+
+function resetScannerBuffer() {
+  scannerBuffer = "";
+
+  if (scannerTimer) {
+    clearTimeout(scannerTimer);
+    scannerTimer = null;
+  }
+}
+
+function processUSBScan() {
+
+  const value = scannerBuffer.trim();
+
+  resetScannerBuffer();
+
+  if (!value) {
+    return;
+  }
+
+  handleQR(value);
+}
+
+document.addEventListener(
+  "keydown",
+  function(event) {
+
+    // Ignore browser/system shortcuts
+    if (
+      event.ctrlKey ||
+      event.altKey ||
+      event.metaKey
+    ) {
+      return;
+    }
+
+    // HT20 normally sends ENTER after the scan
+    if (event.key === "Enter") {
+
+      event.preventDefault();
+
+      processUSBScan();
+
+      return;
+    }
+
+    // Capture characters sent by the HT20
+    if (event.key.length === 1) {
+
+      scannerBuffer += event.key;
+
+      if (scannerTimer) {
+        clearTimeout(scannerTimer);
+      }
+
+      // Also support scanners configured without ENTER
+      scannerTimer = setTimeout(
+        processUSBScan,
+        150
+      );
+    }
+
+  },
+  true
+);
+
+
+// ==================================================
+// START CAMERA + USB SCANNER
 // ==================================================
 
 startCamera();
-
-
-</script>
-
-
-</body>
-
-</html>
