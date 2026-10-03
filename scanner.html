@@ -166,13 +166,12 @@
 <script>
 
 
-// ==================================================
-// GOOGLE APPS SCRIPT
-// ==================================================
+const API =
+  "https://script.google.com/macros/s/AKfycbypaGb2jp237CuXYn7fuuWy7NPDIPgNU0M12sgOEzawtEUBM3SxEKGs5culnf3wgG5X/exec";
 
-const API = "https://script.google.com/macros/s/AKfycbypaGb2jp237CuXYn7fuuWy7NPDIPgNU0M12sgOEzawtEUBM3SxEKGs5culnf3wgG5X/exec";
+
 // ==================================================
-// SESSION DATA
+// SESSION
 // ==================================================
 
 const employee =
@@ -183,22 +182,8 @@ const action =
 
 
 // ==================================================
-// HTML ELEMENTS
+// HTML
 // ==================================================
-
-const video =
-  document.getElementById("video");
-
-const canvas =
-  document.getElementById("canvas");
-
-const ctx =
-  canvas.getContext(
-    "2d",
-    {
-      willReadFrequently: true
-    }
-  );
 
 const statusElement =
   document.getElementById("status");
@@ -215,19 +200,62 @@ const lastElement =
 const countElement =
   document.getElementById("count");
 
-const helpElement =
-  document.getElementById("permissionHelp");
+
+// ==================================================
+// SESSION CHECK
+// ==================================================
+
+if (!employee || !action) {
+
+  modeElement.textContent =
+    "SESSION NOT FOUND";
+
+  employeeElement.textContent =
+    "Please go back and start scanning again.";
+
+  statusElement.textContent =
+    "READY";
+
+} else {
+
+  if (action === "SEND") {
+
+    modeElement.textContent =
+      "GODOWN — SEND";
+
+  } else if (action === "RECEIVE") {
+
+    modeElement.textContent =
+      "SHOP — RECEIVE";
+
+  } else if (action === "CORRECT") {
+
+    modeElement.textContent =
+      "CORRECT — UNDO SCAN";
+
+  } else {
+
+    modeElement.textContent =
+      action;
+
+  }
+
+  employeeElement.textContent =
+    "Employee: " + employee;
+
+  statusElement.textContent =
+    "READY — HT20 SCANNER";
+
+}
 
 
 // ==================================================
-// VARIABLES
+// SCANNER VARIABLES
 // ==================================================
 
-let stream = null;
+let scannerBuffer = "";
 
-let barcodeDetector = null;
-
-let scanRunning = true;
+let scannerTimer = null;
 
 const scanned = new Set();
 
@@ -237,85 +265,20 @@ const MAX_ACTIVE_REQUESTS = 5;
 
 const requestQueue = [];
 
-// ==================================================
-// DISPLAY MODE
-// ==================================================
-
-if (action === "SEND") {
-
-  modeElement.textContent =
-    "GODOWN — SEND";
-
-}
-
-else if (action === "RECEIVE") {
-
-  modeElement.textContent =
-    "SHOP — RECEIVE";
-
-}
-
-else if (action === "RETURN") {
-
-  modeElement.textContent =
-    "SHOP — RETURN";
-
-}
-
-else if (action === "CORRECT") {
-
-  modeElement.textContent =
-    "CORRECT — UNDO SCAN";
-
-}
-
-else {
-
-  modeElement.textContent =
-    "UNKNOWN MODE";
-
-}
-
-
-employeeElement.textContent =
-  "Employee: " + employee;
-
 
 // ==================================================
-// BACK BUTTON
+// BUFFER RESET
 // ==================================================
 
-function back() {
+function resetScannerBuffer() {
 
-  stopCamera();
+  scannerBuffer = "";
 
-  location.href =
-    "index.html";
+  if (scannerTimer) {
 
-}
+    clearTimeout(scannerTimer);
 
-
-// ==================================================
-// STOP CAMERA
-// ==================================================
-
-function stopCamera() {
-
-  scanRunning = false;
-
-  if (stream) {
-
-    stream
-      .getTracks()
-      .forEach(
-        function(track) {
-
-          track.stop();
-
-        }
-      );
-
-    stream = null;
+    scannerTimer = null;
 
   }
 
@@ -323,442 +286,81 @@ function stopCamera() {
 
 
 // ==================================================
-// CAMERA ERROR
+// PROCESS USB SCAN
 // ==================================================
 
-function cameraError(message) {
+function processUSBScan() {
 
-  statusElement.textContent =
-    message;
+  const value =
+    scannerBuffer.trim();
 
-  helpElement.style.display =
-    "block";
+  resetScannerBuffer();
 
-}
-
-
-// ==================================================
-// START CAMERA
-// ==================================================
-
-async function startCamera() {
-
-
-  // ------------------------------------------------
-  // CHECK SESSION
-  // ------------------------------------------------
-
-  if (!employee || !action) {
-
-    location.href =
-      "index.html";
-
+  if (!value) {
     return;
-
   }
 
-
-  // ------------------------------------------------
-  // CHECK BROWSER SUPPORT
-  // ------------------------------------------------
-
-  if (
-    !navigator.mediaDevices ||
-    !navigator.mediaDevices.getUserMedia
-  ) {
-
-    cameraError(
-      "Camera is not supported by this browser."
-    );
-
-    return;
-
-  }
+  handleQR(value);
+}
 
 
-  statusElement.textContent =
-    "Requesting camera permission...";
+// ==================================================
+// HT20 KEYBOARD INPUT
+// ==================================================
 
-
-  try {
-
-
-    // ------------------------------------------------
-    // REQUEST REAR CAMERA
-    // ------------------------------------------------
-
-    stream =
-      await navigator.mediaDevices.getUserMedia({
-
-        video: {
-
-          facingMode: {
-            ideal: "environment"
-          },
-
-          width: {
-            ideal: 1280
-          },
-
-          height: {
-            ideal: 720
-          }
-
-        },
-
-        audio: false
-
-      });
-
-
-    statusElement.textContent =
-      "Camera connected...";
-
-
-    video.srcObject =
-      stream;
-
-
-    // ------------------------------------------------
-    // WAIT FOR VIDEO
-    // ------------------------------------------------
-
-    await new Promise(
-      function(resolve) {
-
-        if (
-          video.readyState >= 2
-        ) {
-
-          resolve();
-
-        }
-
-        else {
-
-          video.onloadedmetadata =
-            function() {
-
-              resolve();
-
-            };
-
-        }
-
-      }
-    );
-
-
-    await video.play();
-
-
-    statusElement.textContent =
-      "READY — SCAN BOX";
-
-
-    helpElement.style.display =
-      "none";
-
-
-    // ------------------------------------------------
-    // NATIVE BARCODE DETECTOR
-    // ------------------------------------------------
+document.addEventListener(
+  "keydown",
+  function(event) {
 
     if (
-      "BarcodeDetector" in window
+      event.ctrlKey ||
+      event.altKey ||
+      event.metaKey
     ) {
+      return;
+    }
 
-      try {
 
-        barcodeDetector =
-          new BarcodeDetector({
+    // HT20 normally sends ENTER
+    // after the complete QR value
 
-            formats: [
-              "qr_code"
-            ]
+    if (event.key === "Enter") {
 
-          });
+      event.preventDefault();
+
+      processUSBScan();
+
+      return;
+    }
+
+
+    // Capture scanner characters
+
+    if (event.key.length === 1) {
+
+      scannerBuffer += event.key;
+
+      if (scannerTimer) {
+
+        clearTimeout(scannerTimer);
 
       }
 
-      catch (error) {
-
-        console.log(
-          "BarcodeDetector unavailable:",
-          error
+      scannerTimer =
+        setTimeout(
+          processUSBScan,
+          500
         );
 
-        barcodeDetector =
-          null;
-
-      }
-
     }
 
-
-    // ------------------------------------------------
-    // START SCANNING
-    // ------------------------------------------------
-
-    requestAnimationFrame(
-      scanFrame
-    );
-
-
-  }
-
-  catch (error) {
-
-
-    console.log(
-      "Camera error:",
-      error
-    );
-
-
-    if (
-      error.name ===
-      "NotAllowedError"
-    ) {
-
-      cameraError(
-        "Camera permission denied."
-      );
-
-    }
-
-    else if (
-      error.name ===
-      "NotFoundError"
-    ) {
-
-      cameraError(
-        "No camera found on this device."
-      );
-
-    }
-
-    else if (
-      error.name ===
-      "NotReadableError"
-    ) {
-
-      cameraError(
-        "Camera is being used by another app."
-      );
-
-    }
-
-    else if (
-      error.name ===
-      "SecurityError"
-    ) {
-
-      cameraError(
-        "Camera access is blocked by browser security."
-      );
-
-    }
-
-    else {
-
-      cameraError(
-        "Camera error: " +
-        (
-          error.message ||
-          error.name
-        )
-      );
-
-    }
-
-  }
-
-}
+  },
+  true
+);
 
 
 // ==================================================
-// SCAN FRAME
-// ==================================================
-
-let lastJsQRScan = 0;
-const JSQR_INTERVAL = 120;
-
-async function scanFrame() {
-
-
-  if (!scanRunning) {
-
-    return;
-
-  }
-
-
-  if (
-    video.readyState >= 2 &&
-    video.videoWidth > 0 &&
-    video.videoHeight > 0
-  ) {
-
-
-    // ==================================================
-    // TRY NATIVE BARCODE DETECTOR
-    // ==================================================
-
-    let nativeFound = false;
-
-
-    if (barcodeDetector) {
-
-      try {
-
-        const codes =
-          await barcodeDetector.detect(
-            video
-          );
-
-
-        if (
-          codes &&
-          codes.length > 0
-        ) {
-
-          const value =
-            codes[0].rawValue || "";
-
-
-          if (value) {
-
-            nativeFound = true;
-
-            handleQR(value);
-
-          }
-
-        }
-
-      }
-
-      catch (error) {
-
-        console.log(
-          "Native QR detector error:",
-          error
-        );
-
-      }
-
-    }
-
-
-    // ==================================================
-    // ALWAYS TRY jsQR IF NATIVE DID NOT FIND A QR
-    // ==================================================
-
-    if (
-      !nativeFound &&
-      Date.now() - lastJsQRScan >= JSQR_INTERVAL
-    ) {
-
-      lastJsQRScan = Date.now();
-
-      // Process a smaller frame for faster QR detection.
-      const maxScanWidth = 640;
-      const scale = Math.min(
-        1,
-        maxScanWidth / video.videoWidth
-      );
-
-      canvas.width =
-        Math.floor(video.videoWidth * scale);
-
-      canvas.height =
-        Math.floor(video.videoHeight * scale);
-
-
-      ctx.drawImage(
-
-        video,
-
-        0,
-
-        0,
-
-        canvas.width,
-
-        canvas.height
-
-      );
-
-
-      try {
-
-        const image =
-          ctx.getImageData(
-
-            0,
-
-            0,
-
-            canvas.width,
-
-            canvas.height
-
-          );
-
-
-        const code =
-          jsQR(
-
-            image.data,
-
-            image.width,
-
-            image.height,
-
-            {
-
-              inversionAttempts:
-                "attemptBoth"
-
-            }
-
-          );
-
-
-        if (code) {
-
-          handleQR(
-            code.data
-          );
-
-        }
-
-      }
-
-      catch (error) {
-
-        console.log(
-          "jsQR scan error:",
-          error
-        );
-
-      }
-
-    }
-
-  }
-
-
-  requestAnimationFrame(
-    scanFrame
-  );
-
-}
-
-
-// ==================================================
-// EXTRACT BOX ID FROM QR
+// EXTRACT BOX ID
 // ==================================================
 
 function getBoxID(text) {
@@ -767,21 +369,15 @@ function getBoxID(text) {
     String(text || "").trim();
 
 
-  // ------------------------------------------------
-  // QR CONTAINS URL
-  // ------------------------------------------------
+  // QR contains URL
 
   try {
 
     const url =
       new URL(text);
 
-
     const box =
-      url.searchParams.get(
-        "box"
-      );
-
+      url.searchParams.get("box");
 
     if (box) {
 
@@ -789,18 +385,12 @@ function getBoxID(text) {
 
     }
 
-  }
+  } catch (error) {
 
-  catch (error) {
-
-    // QR may contain plain Box ID
+    // Plain Box ID
 
   }
 
-
-  // ------------------------------------------------
-  // PLAIN BOX ID
-  // ------------------------------------------------
 
   return text.trim();
 
@@ -814,60 +404,51 @@ function getBoxID(text) {
 function isValidBoxID(box) {
 
   if (!box) {
-
     return false;
+  }
+
+
+  // Old format
+
+  if (
+    /^BOX-\d+$/i.test(box)
+  ) {
+
+    return true;
 
   }
 
 
-  // Old format:
-  // BOX-000001
-
-  const oldFormat =
-    /^BOX-\d+$/i.test(box);
-
-
-  // New format:
-  // NOV500.260928-00001
-  // CA90.260928-00001
-
-  const newFormat =
-    /^[A-Z0-9]+\.\d{6}-\d{5}$/i.test(box);
-
+  // New format
 
   return (
-    oldFormat ||
-    newFormat
+    /^[A-Z0-9]+\.\d{6}-\d{5}$/i.test(box)
   );
 
 }
 
 
 // ==================================================
-// QR FOUND
+// HANDLE QR
 // ==================================================
 
 function handleQR(text) {
-
 
   const box =
     getBoxID(text);
 
 
-  // ------------------------------------------------
-  // VALIDATE
-  // ------------------------------------------------
-
   if (!isValidBoxID(box)) {
+
+    statusElement.textContent =
+      "INVALID QR";
 
     return;
 
   }
 
 
-  // ------------------------------------------------
-  // ALREADY SCANNED
-  // ------------------------------------------------
+  // Duplicate protection
 
   if (
     scanned.has(box)
@@ -878,25 +459,7 @@ function handleQR(text) {
   }
 
 
-  // ------------------------------------------------
-  // WAIT FOR PREVIOUS REQUEST
-  // ------------------------------------------------
-
-  if (scanned.has(box)) {
-    return;
-}
-
-scanned.add(box);
-
-if (activeRequests < MAX_ACTIVE_REQUESTS) {
-
-    sendBox(box);
-
-} else {
-
-    requestQueue.push(box);
-
-}
+  scanned.add(box);
 
 
   countElement.textContent =
@@ -908,16 +471,29 @@ if (activeRequests < MAX_ACTIVE_REQUESTS) {
     "✓ " + box;
 
 
-  
+  if (
+    activeRequests <
+    MAX_ACTIVE_REQUESTS
+  ) {
+
+    sendBox(box);
+
+  } else {
+
+    requestQueue.push(box);
+
+  }
 
 }
 
 
 // ==================================================
-// SEND BOX TO GOOGLE APPS SCRIPT
+// SEND BOX TO APPS SCRIPT
 // ==================================================
 
 function sendBox(box) {
+
+  activeRequests++;
 
 
   statusElement.textContent =
@@ -925,10 +501,6 @@ function sendBox(box) {
     box +
     "...";
 
-
-  // ------------------------------------------------
-  // CREATE UNIQUE CALLBACK
-  // ------------------------------------------------
 
   const callback =
     "cb_" +
@@ -942,104 +514,77 @@ function sendBox(box) {
   let finished = false;
 
 
-  // ------------------------------------------------
-  // FINISH REQUEST
-  // ------------------------------------------------
-
   function finish() {
 
     if (finished) {
-        return;
+      return;
     }
+
 
     finished = true;
 
+
     delete window[callback];
 
-    const script =
-        document.getElementById(callback);
 
-    if (script) {
-        script.remove();
+    const oldScript =
+      document.getElementById(
+        callback
+      );
+
+
+    if (oldScript) {
+
+      oldScript.remove();
+
     }
+
 
     activeRequests =
-        Math.max(
-            0,
-            activeRequests - 1
-        );
+      Math.max(
+        0,
+        activeRequests - 1
+      );
 
-    // Process next queued box
+
     if (
-        requestQueue.length > 0 &&
-        activeRequests < MAX_ACTIVE_REQUESTS
+      requestQueue.length > 0 &&
+      activeRequests <
+      MAX_ACTIVE_REQUESTS
     ) {
 
-        const nextBox =
-            requestQueue.shift();
+      const nextBox =
+        requestQueue.shift();
 
-        sendBox(nextBox);
+      sendBox(nextBox);
+
     }
 
-}
-  // ------------------------------------------------
+  }
+
+
+  // ==================================================
   // JSONP CALLBACK
-  // ------------------------------------------------
+  // ==================================================
 
   window[callback] =
     function(result) {
 
-
       try {
-
 
         if (
           result &&
           result.success
         ) {
 
+          statusElement.textContent =
+            "✓ " +
+            box +
+            " recorded • READY FOR NEXT BOX";
 
-          // ----------------------------------------
-          // SUCCESS
-          // ----------------------------------------
+        } else {
 
-          if (
-            action ===
-            "CORRECT"
-          ) {
-
-            statusElement.textContent =
-              "✓ " +
-              (
-                result.message ||
-                "Correction completed"
-              );
-
-          }
-
-          else {
-
-            statusElement.textContent =
-              "✓ " +
-              box +
-              " recorded • READY FOR NEXT BOX";
-
-          }
-
-
-        }
-
-        else {
-
-
-          // ----------------------------------------
-          // APPS SCRIPT RETURNED ERROR
-          // ----------------------------------------
-
-          scanned.delete(
-            box
-          );
-
+          scanned.delete(box);
 
           statusElement.textContent =
             "ERROR: " +
@@ -1052,28 +597,18 @@ function sendBox(box) {
 
         }
 
-      }
+      } catch (error) {
 
-      catch (error) {
-
-
-        scanned.delete(
-          box
-        );
-
+        scanned.delete(box);
 
         statusElement.textContent =
           "ERROR: " +
-          (
-            error.message ||
-            "Response processing failed"
-          );
+          error.message;
 
       }
 
 
       finally {
-
 
         setTimeout(
           finish,
@@ -1085,9 +620,9 @@ function sendBox(box) {
     };
 
 
-  // ------------------------------------------------
-  // REQUEST PARAMETERS
-  // ------------------------------------------------
+  // ==================================================
+  // REQUEST
+  // ==================================================
 
   const params =
     new URLSearchParams();
@@ -1098,42 +633,31 @@ function sendBox(box) {
     "1"
   );
 
-
   params.set(
     "box",
     box
   );
-
 
   params.set(
     "action",
     action
   );
 
-
   params.set(
     "employee",
     employee
   );
-
 
   params.set(
     "callback",
     callback
   );
 
-
-  // Prevent browser/cache interference
-
   params.set(
     "_",
     Date.now().toString()
   );
 
-
-  // ------------------------------------------------
-  // CREATE JSONP SCRIPT
-  // ------------------------------------------------
 
   const script =
     document.createElement(
@@ -1143,7 +667,6 @@ function sendBox(box) {
 
   script.id =
     callback;
-
 
   script.async =
     true;
@@ -1155,47 +678,37 @@ function sendBox(box) {
     params.toString();
 
 
-  // ------------------------------------------------
-  // CONNECTION ERROR
-  // ------------------------------------------------
-
   script.onerror =
     function() {
 
-
-      scanned.delete(
-        box
-      );
-
+      scanned.delete(box);
 
       statusElement.textContent =
-        "Connection error — API request failed";
-
+        "Connection error — please scan again";
 
       finish();
 
     };
 
 
-  // ------------------------------------------------
+  document.body.appendChild(
+    script
+  );
+
+
+  // ==================================================
   // TIMEOUT
-  // ------------------------------------------------
+  // ==================================================
 
   setTimeout(
     function() {
 
-
       if (!finished) {
 
-
-        scanned.delete(
-          box
-        );
-
+        scanned.delete(box);
 
         statusElement.textContent =
           "Connection timeout — please scan again";
-
 
         finish();
 
@@ -1205,93 +718,4 @@ function sendBox(box) {
     15000
   );
 
-
-  // ------------------------------------------------
-  // SEND REQUEST
-  // ------------------------------------------------
-
-  document.body.appendChild(
-    script
-  );
-
-}
-
-
-// ==================================================
-// HT20 USB SCANNER
-// ==================================================
-
-let scannerBuffer = "";
-let scannerTimer = null;
-
-function resetScannerBuffer() {
-  scannerBuffer = "";
-
-  if (scannerTimer) {
-    clearTimeout(scannerTimer);
-    scannerTimer = null;
-  }
-}
-
-function processUSBScan() {
-
-  const value = scannerBuffer.trim();
-
-  resetScannerBuffer();
-
-  if (!value) {
-    return;
-  }
-
-  handleQR(value);
-}
-
-document.addEventListener(
-  "keydown",
-  function(event) {
-
-    // Ignore browser/system shortcuts
-    if (
-      event.ctrlKey ||
-      event.altKey ||
-      event.metaKey
-    ) {
-      return;
-    }
-
-    // HT20 normally sends ENTER after the scan
-    if (event.key === "Enter") {
-
-      event.preventDefault();
-
-      processUSBScan();
-
-      return;
-    }
-
-    // Capture characters sent by the HT20
-    if (event.key.length === 1) {
-
-      scannerBuffer += event.key;
-
-      if (scannerTimer) {
-        clearTimeout(scannerTimer);
-      }
-
-      // Also support scanners configured without ENTER
-      scannerTimer = setTimeout(
-        processUSBScan,
-        150
-      );
-    }
-
-  },
-  true
-);
-
-
-// ==================================================
-// START CAMERA + USB SCANNER
-// ==================================================
-
-startCamera();
+}  
