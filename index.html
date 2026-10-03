@@ -59,9 +59,9 @@
     autocomplete="name"
   >
 
-  <button onclick="start()">
-    START SCANNING
-  </button>
+  <button type="button" id="startButton">
+  START SCANNING
+</button>
 
 </div>
 
@@ -70,25 +70,43 @@
 function start() {
 
   const employee =
-    document.getElementById("employee").value.trim();
+    document.getElementById("employee")
+      .value
+      .trim();
 
   const action =
-    document.getElementById("mode").value;
+    document.getElementById("mode")
+      .value;
 
   if (!employee) {
-    alert("Enter employee name");
+
+    alert(
+      "Enter employee name first"
+    );
+
     return;
   }
 
-  localStorage.setItem("boxEmployee",employee);
-localStorage.setItem("boxAction",action);
+  localStorage.setItem(
+    "boxEmployee",
+    employee
   );
 
-  // Open camera on NEW PAGE
-  location.href = "scanner.html";
+  localStorage.setItem(
+    "boxAction",
+    action
+  );
+
+  window.location.href =
+    "scanner.html";
 }
 
-</script>
 
-</body>
-</html>
+document
+  .getElementById("startButton")
+  .addEventListener(
+    "click",
+    start
+  );
+
+</script>
