@@ -80,14 +80,8 @@ function start() {
     return;
   }
 
-  sessionStorage.setItem(
-    "boxEmployee",
-    employee
-  );
-
-  sessionStorage.setItem(
-    "boxAction",
-    action
+  localStorage.setItem("boxEmployee",employee);
+localStorage.setItem("boxAction",action);
   );
 
   // Open camera on NEW PAGE
