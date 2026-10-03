@@ -261,7 +261,7 @@ const scanned = new Set();
 
 let activeRequests = 0;
 
-const MAX_ACTIVE_REQUESTS = 5;
+const MAX_ACTIVE_REQUESTS = 1;
 
 const requestQueue = [];
 
@@ -745,7 +745,7 @@ function sendBox(box) {
       }
 
     },
-    15000
+    30000
   );
 
 }  
